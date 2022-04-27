@@ -4,6 +4,7 @@ import warnings
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from prophet import Prophet
 from prophet.diagnostics import cross_validation, performance_metrics
 from prophet.plot import plot_plotly, plot_components_plotly, \
     plot_cross_validation_metric
@@ -39,14 +40,17 @@ def prepare(orig_df):
     return df
 
 
-def fit(m, group):
+def fit(group):
+    m = Prophet()
     group = group.sort_values('START_TIME')
     group['DIFF'] = (
             group['START_TIME_epoc'].shift(-1) - group['START_TIME_epoc'])
     group['ds'] = group['START_TIME']
     group['y'] = group['DIFF']
-    with suppress_stdout_stderr():
+    with suppress_stdout_stderr(), warnings.catch_warnings():
+        warnings.simplefilter(action='ignore', category=FutureWarning)
         m.fit(group)
+    return m
 
 
 def forecast(m, group_name):
@@ -59,12 +63,13 @@ def forecast(m, group_name):
                          unit='s').strftime('%Y-%m-%d %X')
     upper = pd.Timestamp(gp.values[0][0].timestamp() + gp.values[0][3],
                          unit='s').strftime('%Y-%m-%d %X')
-    predicted = pd.Timestamp(gp.values[0][0].timestamp() + gp.values[0][1],
+    result = gp.values[0][0].timestamp() + gp.values[0][1]
+    predicted = pd.Timestamp(result,
                              unit='s').strftime('%Y-%m-%d %X')
-    print(
-        group_name + " will arrive between " + lower + " to "
-        + upper + ", predicted at: " + predicted)
-    return forecast_group
+    # print(
+    #     group_name + " will arrive between " + lower + " to "
+    #     + upper + ", predicted at: " + predicted)
+    return result
 
 
 # Validation code
