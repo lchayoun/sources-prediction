@@ -11,27 +11,32 @@ from prophet.plot import plot_plotly, plot_components_plotly, \
 from prophet.serialize import model_to_json, model_from_json
 
 
+# Loading the entire dataset from CSV
 def load_dataset():
     return pd.read_csv('../raw_dataset_new.csv')
 
 
+# Saving a fitted model to a file
 def save_model(m, group_name):
     with open('../models/' + group_name + '_serialized_model.json',
               'w') as fout:
         json.dump(model_to_json(m), fout)
 
 
+# Loading a saved model from file
 def load_model(group_name):
     with open('../models/' + group_name + '_serialized_model.json', 'r') as fin:
         return model_from_json(json.load(fin))
 
 
+# Updating a fitted model with new data points
 def update_fitted_model(m, df, group_name):
     m = m.fit(df, init=load_model(group_name))
     save_model(m, group_name)
     return m
 
 
+# Preparing the data set, removing unwanted status, selecting relevant fields
 def prepare(orig_df):
     df = orig_df[
         ['FILE_NAME', 'LogicFile', 'START_TIME', 'START_TIME_epoc', 'STAT_DESC',
@@ -40,6 +45,7 @@ def prepare(orig_df):
     return df
 
 
+# Fitting the model to the data set
 def fit(group):
     m = Prophet()
     group = group.sort_values('START_TIME')
@@ -53,6 +59,7 @@ def fit(group):
     return m
 
 
+# Forcasting the next timestamp based on the fitted model
 def forecast(m, group_name):
     with suppress_stdout_stderr(), warnings.catch_warnings():
         warnings.simplefilter(action='ignore', category=FutureWarning)
