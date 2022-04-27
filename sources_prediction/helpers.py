@@ -5,7 +5,8 @@ import warnings
 import matplotlib.pyplot as plt
 import pandas as pd
 from prophet.diagnostics import cross_validation, performance_metrics
-from prophet.plot import plot_plotly, plot_components_plotly, plot_cross_validation_metric
+from prophet.plot import plot_plotly, plot_components_plotly, \
+    plot_cross_validation_metric
 from prophet.serialize import model_to_json, model_from_json
 
 
@@ -14,7 +15,8 @@ def load_dataset():
 
 
 def save_model(m, group_name):
-    with open('../models/' + group_name + '_serialized_model.json', 'w') as fout:
+    with open('../models/' + group_name + '_serialized_model.json',
+              'w') as fout:
         json.dump(model_to_json(m), fout)
 
 
@@ -30,14 +32,17 @@ def update_fitted_model(m, df, group_name):
 
 
 def prepare(orig_df):
-    df = orig_df[['FILE_NAME', 'LogicFile', 'START_TIME', 'START_TIME_epoc', 'STAT_DESC', 'STATUS']]
+    df = orig_df[
+        ['FILE_NAME', 'LogicFile', 'START_TIME', 'START_TIME_epoc', 'STAT_DESC',
+         'STATUS']]
     df = df[df['STAT_DESC'] != 'Processing']
     return df
 
 
 def fit(m, group):
     group = group.sort_values('START_TIME')
-    group['DIFF'] = (group['START_TIME_epoc'].shift(-1) - group['START_TIME_epoc'])
+    group['DIFF'] = (
+            group['START_TIME_epoc'].shift(-1) - group['START_TIME_epoc'])
     group['ds'] = group['START_TIME']
     group['y'] = group['DIFF']
     with suppress_stdout_stderr():
@@ -50,10 +55,15 @@ def forecast(m, group_name):
         future = m.make_future_dataframe(periods=0)
         forecast_group = m.predict(future)
     gp = forecast_group[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(1)
-    lower = pd.Timestamp(gp.values[0][0].timestamp() + gp.values[0][2], unit='s').strftime('%Y-%m-%d %X')
-    upper = pd.Timestamp(gp.values[0][0].timestamp() + gp.values[0][3], unit='s').strftime('%Y-%m-%d %X')
-    predicted = pd.Timestamp(gp.values[0][0].timestamp() + gp.values[0][1], unit='s').strftime('%Y-%m-%d %X')
-    print(group_name + " will arrive between " + lower + " to " + upper + ", predicted at: " + predicted)
+    lower = pd.Timestamp(gp.values[0][0].timestamp() + gp.values[0][2],
+                         unit='s').strftime('%Y-%m-%d %X')
+    upper = pd.Timestamp(gp.values[0][0].timestamp() + gp.values[0][3],
+                         unit='s').strftime('%Y-%m-%d %X')
+    predicted = pd.Timestamp(gp.values[0][0].timestamp() + gp.values[0][1],
+                             unit='s').strftime('%Y-%m-%d %X')
+    print(
+        group_name + " will arrive between " + lower + " to "
+        + upper + ", predicted at: " + predicted)
     return forecast_group
 
 
@@ -73,7 +83,8 @@ def plot(m, forecast_group):
 
 def cv(m, group):
     with suppress_stdout_stderr():
-        df_cv = cross_validation(m, horizon=str(int(group.size * 0.01)) + ' days')
+        df_cv = cross_validation(m,
+                                 horizon=str(int(group.size * 0.01)) + ' days')
     df_p = performance_metrics(df_cv)
     fig = plt.figure(facecolor='w', figsize=(10, 6))
     ax = fig.add_subplot(111)

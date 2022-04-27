@@ -17,7 +17,8 @@ def main():  # pragma: no cover
             # helpers.save_model(m, group_name)
             # helpers.cv(m, group)
         except Exception as inst:
-            print('Failed predicting ' + group_name + ':', inst, file=sys.stderr)
+            print('Failed predicting ' + group_name + ':', inst,
+                  file=sys.stderr)
 
 
 if __name__ == "__main__":
