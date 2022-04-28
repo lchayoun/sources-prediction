@@ -1,9 +1,8 @@
 import sys
 from datetime import datetime
 
-from tqdm.contrib.concurrent import process_map
-
 import helpers
+from tqdm.contrib.concurrent import process_map
 
 DEBUG = False
 CV = True
@@ -14,8 +13,8 @@ def main():  # pragma: no cover
     df = helpers.prepare(dataset)
     gb = (
         df.groupby("LogicFile")
-            .filter(lambda x: len(x) > 2000)
-            .groupby("LogicFile")
+        .filter(lambda x: len(x) > 2000)
+        .groupby("LogicFile")
     )
     results = process_map(predict_group, gb, chunksize=1, max_workers=20)
     current_ts = 1647338205  # time.time()

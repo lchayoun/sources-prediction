@@ -23,7 +23,7 @@ def load_dataset():
 # Saving a fitted model to a file
 def save_model(m, group_name):
     with open(
-            "../models/" + group_name + "_serialized_model.json", "w"
+        "../models/" + group_name + "_serialized_model.json", "w"
     ) as fout:
         json.dump(model_to_json(m), fout)
 
@@ -31,7 +31,7 @@ def save_model(m, group_name):
 # Loading a saved model from file
 def load_model(group_name):
     with open(
-            "../models/" + group_name + "_serialized_model.json", "r"
+        "../models/" + group_name + "_serialized_model.json", "r"
     ) as fin:
         return model_from_json(json.load(fin))
 
@@ -64,7 +64,7 @@ def fit(group):
     m = Prophet()
     group = group.sort_values("START_TIME")
     group["DIFF"] = (
-            group["START_TIME_epoc"].shift(-1) - group["START_TIME_epoc"]
+        group["START_TIME_epoc"].shift(-1) - group["START_TIME_epoc"]
     )
     group["ds"] = group["START_TIME"]
     group["y"] = group["DIFF"]
