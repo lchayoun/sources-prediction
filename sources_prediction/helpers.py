@@ -25,7 +25,8 @@ def save_model(m, group_name):
 
 # Loading a saved model from file
 def load_model(group_name):
-    with open('../models/' + group_name + '_serialized_model.json', 'r') as fin:
+    with open('../models/' + group_name + '_serialized_model.json',
+              'r') as fin:
         return model_from_json(json.load(fin))
 
 
@@ -39,8 +40,8 @@ def update_fitted_model(m, df, group_name):
 # Preparing the data set, removing unwanted status, selecting relevant fields
 def prepare(orig_df):
     df = orig_df[
-        ['FILE_NAME', 'LogicFile', 'START_TIME', 'START_TIME_epoc', 'STAT_DESC',
-         'STATUS']]
+        ['FILE_NAME', 'LogicFile', 'START_TIME', 'START_TIME_epoc',
+         'STAT_DESC', 'STATUS']]
     df = df[df['STAT_DESC'] != 'Processing']
     return df
 
@@ -60,7 +61,7 @@ def fit(group):
 
 
 # Forcasting the next timestamp based on the fitted model
-def forecast(m, group_name):
+def forecast(m, group_name, debug):
     with suppress_stdout_stderr(), warnings.catch_warnings():
         warnings.simplefilter(action='ignore', category=FutureWarning)
         future = m.make_future_dataframe(periods=0)
@@ -73,9 +74,10 @@ def forecast(m, group_name):
     result = gp.values[0][0].timestamp() + gp.values[0][1]
     predicted = pd.Timestamp(result,
                              unit='s').strftime('%Y-%m-%d %X')
-    # print(
-    #     group_name + " will arrive between " + lower + " to "
-    #     + upper + ", predicted at: " + predicted)
+    if debug:
+        print(
+            group_name + " will arrive between " + lower + " to "
+            + upper + ", predicted at: " + predicted)
     return result
 
 
