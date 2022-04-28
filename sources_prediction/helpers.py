@@ -1,32 +1,38 @@
 import json
 import os
 import warnings
+from math import sqrt
 
 import matplotlib.pyplot as plt
 import pandas as pd
 from prophet import Prophet
 from prophet.diagnostics import cross_validation, performance_metrics
-from prophet.plot import plot_plotly, plot_components_plotly, \
-    plot_cross_validation_metric
-from prophet.serialize import model_to_json, model_from_json
+from prophet.plot import (
+    plot_components_plotly,
+    plot_cross_validation_metric,
+    plot_plotly,
+)
+from prophet.serialize import model_from_json, model_to_json
 
 
 # Loading the entire dataset from CSV
 def load_dataset():
-    return pd.read_csv('../raw_dataset_new.csv')
+    return pd.read_csv("../raw_dataset_new.csv")
 
 
 # Saving a fitted model to a file
 def save_model(m, group_name):
-    with open('../models/' + group_name + '_serialized_model.json',
-              'w') as fout:
+    with open(
+            "../models/" + group_name + "_serialized_model.json", "w"
+    ) as fout:
         json.dump(model_to_json(m), fout)
 
 
 # Loading a saved model from file
 def load_model(group_name):
-    with open('../models/' + group_name + '_serialized_model.json',
-              'r') as fin:
+    with open(
+            "../models/" + group_name + "_serialized_model.json", "r"
+    ) as fin:
         return model_from_json(json.load(fin))
 
 
@@ -40,22 +46,30 @@ def update_fitted_model(m, df, group_name):
 # Preparing the data set, removing unwanted status, selecting relevant fields
 def prepare(orig_df):
     df = orig_df[
-        ['FILE_NAME', 'LogicFile', 'START_TIME', 'START_TIME_epoc',
-         'STAT_DESC', 'STATUS']]
-    df = df[df['STAT_DESC'] != 'Processing']
+        [
+            "FILE_NAME",
+            "LogicFile",
+            "START_TIME",
+            "START_TIME_epoc",
+            "STAT_DESC",
+            "STATUS",
+        ]
+    ]
+    df = df[df["STAT_DESC"] != "Processing"]
     return df
 
 
 # Fitting the model to the data set
 def fit(group):
     m = Prophet()
-    group = group.sort_values('START_TIME')
-    group['DIFF'] = (
-            group['START_TIME_epoc'].shift(-1) - group['START_TIME_epoc'])
-    group['ds'] = group['START_TIME']
-    group['y'] = group['DIFF']
+    group = group.sort_values("START_TIME")
+    group["DIFF"] = (
+            group["START_TIME_epoc"].shift(-1) - group["START_TIME_epoc"]
+    )
+    group["ds"] = group["START_TIME"]
+    group["y"] = group["DIFF"]
     with suppress_stdout_stderr(), warnings.catch_warnings():
-        warnings.simplefilter(action='ignore', category=FutureWarning)
+        warnings.simplefilter(action="ignore", category=FutureWarning)
         m.fit(group)
     return m
 
@@ -63,21 +77,28 @@ def fit(group):
 # Forcasting the next timestamp based on the fitted model
 def forecast(m, group_name, debug):
     with suppress_stdout_stderr(), warnings.catch_warnings():
-        warnings.simplefilter(action='ignore', category=FutureWarning)
+        warnings.simplefilter(action="ignore", category=FutureWarning)
         future = m.make_future_dataframe(periods=0)
         forecast_group = m.predict(future)
-    gp = forecast_group[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(1)
-    lower = pd.Timestamp(gp.values[0][0].timestamp() + gp.values[0][2],
-                         unit='s').strftime('%Y-%m-%d %X')
-    upper = pd.Timestamp(gp.values[0][0].timestamp() + gp.values[0][3],
-                         unit='s').strftime('%Y-%m-%d %X')
+    gp = forecast_group[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail(1)
+    lower = pd.Timestamp(
+        gp.values[0][0].timestamp() + gp.values[0][2], unit="s"
+    ).strftime("%Y-%m-%d %X")
+    upper = pd.Timestamp(
+        gp.values[0][0].timestamp() + gp.values[0][3], unit="s"
+    ).strftime("%Y-%m-%d %X")
     result = gp.values[0][0].timestamp() + gp.values[0][1]
-    predicted = pd.Timestamp(result,
-                             unit='s').strftime('%Y-%m-%d %X')
+    predicted = pd.Timestamp(result, unit="s").strftime("%Y-%m-%d %X")
     if debug:
         print(
-            group_name + " will arrive between " + lower + " to "
-            + upper + ", predicted at: " + predicted)
+            group_name
+            + " will arrive between "
+            + lower
+            + " to "
+            + upper
+            + ", predicted at: "
+            + predicted
+        )
     return result
 
 
@@ -95,20 +116,23 @@ def plot(m, forecast_group):
     plot_components_plotly(m, forecast_group)
 
 
-def cv(m, group):
+def cv(m, group, debug):
+    horizon = str(int(sqrt(group.size))) + " days"
     with suppress_stdout_stderr():
-        df_cv = cross_validation(m,
-                                 horizon=str(int(group.size * 0.01)) + ' days')
+        df_cv = cross_validation(m, horizon=horizon, initial=group.size / 2)
     df_p = performance_metrics(df_cv)
-    fig = plt.figure(facecolor='w', figsize=(10, 6))
-    ax = fig.add_subplot(111)
-    ax.set_ylim(ymax=df_p['mape'].max() * 1.01)
-    fig = plot_cross_validation_metric(df_cv, metric='mape', ax=ax)
-    fig.show()
+    if debug:
+        print(df_p)
+        fig = plt.figure(facecolor="w", figsize=(10, 6))
+        ax = fig.add_subplot(111)
+        ax.set_ylim(ymax=df_p["mape"].max() * 1.01)
+        fig = plot_cross_validation_metric(df_cv, metric="mape", ax=ax)
+        fig.show()
+    return df_p["mape"].mean()
 
 
 class suppress_stdout_stderr(object):
-    '''
+    """
     A context manager for doing a "deep suppression" of stdout and stderr in
     Python, i.e. will suppress all print, even if the print originates in a
     compiled C/Fortran sub-function.
@@ -116,7 +140,7 @@ class suppress_stdout_stderr(object):
     to stderr just before a script exits, and after the context manager has
     exited (at least, I think that is why it lets exceptions through).
 
-    '''
+    """
 
     def __init__(self):
         # Open a pair of null files
