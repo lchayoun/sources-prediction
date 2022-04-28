@@ -5,7 +5,7 @@ import helpers
 from tqdm.contrib.concurrent import process_map
 
 DEBUG = False
-CV = True
+CV = False
 
 
 def main():  # pragma: no cover
@@ -13,7 +13,7 @@ def main():  # pragma: no cover
     df = helpers.prepare(dataset)
     gb = (
         df.groupby("LogicFile")
-        .filter(lambda x: len(x) > 2000)
+        .filter(lambda x: len(x) > 10)
         .groupby("LogicFile")
     )
     results = process_map(predict_group, gb, chunksize=1, max_workers=20)
