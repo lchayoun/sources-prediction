@@ -150,7 +150,7 @@ def cv(m, group, debug):
         ax.set_ylim(ymax=df_p["mape"].max() * 1.01)
         fig = plot_cross_validation_metric(df_cv, metric="mape", ax=ax)
         fig.show()
-    return df_p["mape"].mean()
+    return df_p["mape"].iat[-1]
 
 
 class suppress_stdout_stderr(object):

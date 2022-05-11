@@ -1,7 +1,8 @@
 import sys
-from datetime import datetime
-
+import os
 import helpers
+import pandas as pd
+from datetime import datetime
 from tqdm.contrib.concurrent import process_map
 
 DEBUG = False
@@ -13,7 +14,7 @@ def main():  # pragma: no cover
     df = helpers.prepare(dataset)
     gb = (
         df.groupby("LogicFile")
-        .filter(lambda x: len(x) > 5000)
+        .filter(lambda x: len(x) > 1000)
         .groupby("LogicFile")
     )
     results = process_map(predict_group, gb, chunksize=1, max_workers=20)
@@ -24,13 +25,15 @@ def main():  # pragma: no cover
             print("%r predicted: %s" % (group_name, result))
         group_to_mape[group_name] = mape
         if result is None:
-            print("No prediction for %r" % (group_name), file=sys.stderr)
-        elif result < current_ts:
-            date = datetime.fromtimestamp(result).strftime("%Y-%m-%d %X")
-            print(
-                "%r predicted in the past: %s" % (group_name, date),
-                file=sys.stderr,
-            )
+            print("No prediction for %r" % group_name, file=sys.stderr)
+        else:
+            strptime = datetime.strptime(result, "%Y-%m-%d %X")
+            timestamp = datetime.timestamp(strptime)
+            if timestamp < current_ts:
+                print(
+                    "%r predicted in the past: %s" % (group_name, result),
+                    file=sys.stderr,
+                )
     if CV:
         print("Groups mape are %r" % group_to_mape)
 
@@ -45,7 +48,7 @@ def predict_group(*args):
         mape = None
         if CV:
             mape = helpers.cv(m, group, DEBUG)
-        return group_name, result.predicted, mape
+        return group_name, result['predicted'], mape
     except Exception as exc:
         print(
             "%r generated an exception: %s" % (group_name, exc),
@@ -54,16 +57,12 @@ def predict_group(*args):
         return group_name, None, None
 
 
-import os
-import pandas as pd
-
-
 def create_datasets():
     dataset = pd.read_csv(os.path.join('..', 'raw_dataset_new.csv'))
     gb = (
         dataset.groupby("LogicFile")
-            .filter(lambda x: len(x) > 5000)
-            .groupby("LogicFile")
+        .filter(lambda x: len(x) > 5000)
+        .groupby("LogicFile")
     )
     process_map(save_group_dataset, gb, chunksize=1, max_workers=20)
 
