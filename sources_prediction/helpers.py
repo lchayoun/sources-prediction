@@ -16,8 +16,13 @@ from prophet.serialize import model_from_json, model_to_json
 
 
 # Loading the entire dataset from CSV
-def load_dataset():
-    return pd.read_csv("../raw_dataset_new.csv")
+def load_dataset(name):
+    return pd.read_csv(os.path.join('..', 'models', 'datasets', name))
+
+
+# Loading the entire dataset from CSV
+def load_update_dataset(name):
+    return pd.read_csv(os.path.join('..', 'models', 'datasets', 'update', name))
 
 
 # Saving a fitted model to a file
@@ -36,10 +41,27 @@ def load_model(group_name):
         return model_from_json(json.load(fin))
 
 
+def stan_init(m):
+    res = {}
+    for pname in ['k', 'm', 'sigma_obs']:
+        res[pname] = m.params[pname][0][0]
+    for pname in ['delta', 'beta']:
+        res[pname] = m.params[pname][0]
+    return res
+
+
 # Updating a fitted model with new data points
-def update_fitted_model(m, df, group_name):
-    m = m.fit(df, init=load_model(group_name))
-    save_model(m, group_name)
+def update_fitted_model(df, group_name):
+    m = Prophet()
+    group = load_model(group_name + '.csv').history.append(prepare(df))
+    group = group.sort_values("START_TIME_epoc")
+    group["DIFF"] = (
+            group["START_TIME_epoc"].shift(-1) - group["START_TIME_epoc"]
+    )
+    group["ds"] = group["START_TIME"]
+    group["y"] = group["DIFF"]
+    m = m.fit(group)
+    save_model(m, group_name + '.csv')
     return m
 
 
@@ -99,7 +121,7 @@ def forecast(m, group_name, debug):
             + ", predicted at: "
             + predicted
         )
-    return result
+    return {'lower_bound': lower, 'upper_bound': upper, 'predicted': predicted}
 
 
 # Validation code

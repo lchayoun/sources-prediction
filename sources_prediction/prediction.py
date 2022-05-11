@@ -9,11 +9,11 @@ CV = False
 
 
 def main():  # pragma: no cover
-    dataset = helpers.load_dataset()
+    dataset = helpers.load_dataset('raw_dataset_new.csv')
     df = helpers.prepare(dataset)
     gb = (
         df.groupby("LogicFile")
-        .filter(lambda x: len(x) > 10)
+        .filter(lambda x: len(x) > 5000)
         .groupby("LogicFile")
     )
     results = process_map(predict_group, gb, chunksize=1, max_workers=20)
@@ -45,13 +45,33 @@ def predict_group(*args):
         mape = None
         if CV:
             mape = helpers.cv(m, group, DEBUG)
-        return group_name, result, mape
+        return group_name, result.predicted, mape
     except Exception as exc:
         print(
             "%r generated an exception: %s" % (group_name, exc),
             file=sys.stderr,
         )
         return group_name, None, None
+
+
+import os
+import pandas as pd
+
+
+def create_datasets():
+    dataset = pd.read_csv(os.path.join('..', 'raw_dataset_new.csv'))
+    gb = (
+        dataset.groupby("LogicFile")
+            .filter(lambda x: len(x) > 5000)
+            .groupby("LogicFile")
+    )
+    process_map(save_group_dataset, gb, chunksize=1, max_workers=20)
+
+
+def save_group_dataset(*args):
+    group_name = args[0][0]
+    group = args[0][1]
+    group.to_csv(os.path.join('..', 'models', 'datasets', group_name + '.csv'))
 
 
 if __name__ == "__main__":
