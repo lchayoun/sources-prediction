@@ -91,7 +91,7 @@ def predict(model):  # put application's code here
     try:
         with sqlite3.connect("sources.db") as con:
             cur = con.cursor()
-            cur.execute("INSERT into Sources ("
+            cur.execute("INSERT OR REPLACE into Sources ("
                         "name, lower_bound, predicted, upper_bound) "
                         "values (?,?,?,?)", (model,
                                              result['lower_bound'],
@@ -121,10 +121,10 @@ def delayed():  # put application's code here
     con.close()
     data = []
     for row in rows:
-        data.append({'name': row[1],
-                     'lower_bound': row[2],
-                     'predicted': row[3],
-                     'upper_bound': row[4]})
+        data.append({'name': row[0],
+                     'lower_bound': row[1],
+                     'predicted': row[2],
+                     'upper_bound': row[3]})
     return json.dumps(data)
 
 
@@ -132,8 +132,7 @@ def init_db():
     con = sqlite3.connect("sources.db")
     print("Database opened successfully")
     con.execute("create table if not exists Sources ("
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                "name TEXT UNIQUE NOT NULL, "
+                "name TEXT PRIMARY KEY, "
                 "lower_bound TIMESTAMP NOT NULL, "
                 "predicted TIMESTAMP NOT NULL, "
                 "upper_bound TIMESTAMP NOT NULL)")
